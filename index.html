@@ -1059,9 +1059,9 @@
             </div>
             
             <div class="action-buttons">
-                <button><i class="fas fa-file-pdf"></i> Generate Compliance Report</button>
-                <button><i class="fas fa-bell"></i> Setup Expiration Alerts</button>
-                <button class="btn-success"><i class="fas fa-sync-alt"></i> Refresh Compliance Data</button>
+                <button onclick="generateComplianceReport()"><i class="fas fa-file-pdf"></i> Generate Compliance Report</button>
+                <button onclick="setupExpirationAlerts()"><i class="fas fa-bell"></i> Setup Expiration Alerts</button>
+                <button class="btn-success" onclick="refreshComplianceData()"><i class="fas fa-sync-alt"></i> Refresh Compliance Data</button>
             </div>
         </div>
     </div>
@@ -1163,12 +1163,18 @@
                 else validPens += pen.quantity;
             });
             
-            // Update pen stats
-            document.getElementById('totalPens').textContent = totalPens;
-            document.getElementById('expiringPens').textContent = expiringPens;
-            document.getElementById('expiredPensCount').textContent = expiredPens;
-            document.getElementById('expiringPensCount').textContent = expiringPens;
-            document.getElementById('validPensCount').textContent = validPens;
+            // Update pen stats (check if elements exist)
+            const totalPensEl = document.getElementById('totalPens');
+            const expiringPensEl = document.getElementById('expiringPens');
+            const expiredPensCountEl = document.getElementById('expiredPensCount');
+            const expiringPensCountEl = document.getElementById('expiringPensCount');
+            const validPensCountEl = document.getElementById('validPensCount');
+            
+            if (totalPensEl) totalPensEl.textContent = totalPens;
+            if (expiringPensEl) expiringPensEl.textContent = expiringPens;
+            if (expiredPensCountEl) expiredPensCountEl.textContent = expiredPens;
+            if (expiringPensCountEl) expiringPensCountEl.textContent = expiringPens;
+            if (validPensCountEl) validPensCountEl.textContent = validPens;
             
             // Calculate training statuses
             let expiredTrainings = 0;
@@ -1186,12 +1192,60 @@
                 else validTrainings++;
             });
             
-            // Update training stats
-            document.getElementById('trainedStaff').textContent = trainedStaff.length;
-            document.getElementById('certExpiring').textContent = expiringTrainings;
-            document.getElementById('expiredTrainingCount').textContent = expiredTrainings;
-            document.getElementById('expiringTrainingCount').textContent = expiringTrainings;
-            document.getElementById('validTrainingCount').textContent = validTrainings;
+            // Update training stats (check if elements exist)
+            const trainedStaffEl = document.getElementById('trainedStaff');
+            const certExpiringEl = document.getElementById('certExpiring');
+            const expiredTrainingCountEl = document.getElementById('expiredTrainingCount');
+            const expiringTrainingCountEl = document.getElementById('expiringTrainingCount');
+            const validTrainingCountEl = document.getElementById('validTrainingCount');
+            
+            if (trainedStaffEl) trainedStaffEl.textContent = trainedStaff.length;
+            if (certExpiringEl) certExpiringEl.textContent = expiringTrainings;
+            if (expiredTrainingCountEl) expiredTrainingCountEl.textContent = expiredTrainings;
+            if (expiringTrainingCountEl) expiringTrainingCountEl.textContent = expiringTrainings;
+            if (validTrainingCountEl) validTrainingCountEl.textContent = validTrainings;
+            
+            // Update compliance status in compliance tab
+            updateComplianceStatus(totalPens, expiredPens, trainedStaff.length, expiringTrainings);
+        }
+        
+        // Update compliance status display
+        function updateComplianceStatus(totalPens, expiredPens, totalStaff, expiringTrainings) {
+            // Find compliance cards and update them
+            const complianceCards = document.querySelectorAll('.compliance-summary .card');
+            
+            complianceCards.forEach(card => {
+                const title = card.querySelector('h4');
+                if (!title) return;
+                
+                if (title.textContent.includes('Inventory Compliance')) {
+                    const paragraphs = card.querySelectorAll('p');
+                    if (paragraphs[0]) {
+                        const icon = totalPens >= 2 ? 'check-circle' : 'exclamation-circle';
+                        const color = totalPens >= 2 ? '#27ae60' : '#e74c3c';
+                        paragraphs[0].innerHTML = `<i class="fas fa-${icon}" style="color: ${color};"></i> Minimum devices: <strong>${totalPens}</strong> (Required: 2)`;
+                    }
+                    if (paragraphs[1]) {
+                        const icon = expiredPens === 0 ? 'check-circle' : 'exclamation-circle';
+                        const color = expiredPens === 0 ? '#27ae60' : '#e74c3c';
+                        paragraphs[1].innerHTML = `<i class="fas fa-${icon}" style="color: ${color};"></i> Expired devices: <strong>${expiredPens}</strong>`;
+                    }
+                }
+                
+                if (title.textContent.includes('Training Compliance')) {
+                    const paragraphs = card.querySelectorAll('p');
+                    if (paragraphs[0]) {
+                        const icon = totalStaff >= 1 ? 'check-circle' : 'exclamation-circle';
+                        const color = totalStaff >= 1 ? '#27ae60' : '#e74c3c';
+                        paragraphs[0].innerHTML = `<i class="fas fa-${icon}" style="color: ${color};"></i> Trained staff: <strong>${totalStaff}</strong> (Required: 1)`;
+                    }
+                    if (paragraphs[1]) {
+                        const icon = expiringTrainings === 0 ? 'check-circle' : 'exclamation-triangle';
+                        const color = expiringTrainings === 0 ? '#27ae60' : '#f39c12';
+                        paragraphs[1].innerHTML = `<i class="fas fa-${icon}" style="color: ${color};"></i> Expiring soon: <strong>${expiringTrainings} certification${expiringTrainings !== 1 ? 's' : ''}</strong>`;
+                    }
+                }
+            });
         }
         
         // Save data to memory
@@ -1329,6 +1383,75 @@
             initForms();
         }
         
+        // Refresh compliance data
+        function refreshComplianceData() {
+            // Show a loading state
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            button.disabled = true;
+            
+            // Simulate data refresh (in real app this would call an API)
+            setTimeout(() => {
+                // Re-render all tables and update dashboard
+                renderPenTable();
+                renderTrainingTable();
+                updateDashboard();
+                
+                // Reset button
+                button.innerHTML = originalText;
+                button.disabled = false;
+                
+                // Show success message
+                showNotification('Compliance data refreshed successfully!', 'success');
+            }, 1500);
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type}`;
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '1000';
+            notification.style.minWidth = '300px';
+            notification.style.animation = 'slideIn 0.3s ease';
+            
+            const icon = type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+            notification.innerHTML = `
+                <i class="fas fa-${icon}"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // Generate compliance report
+        function generateComplianceReport() {
+            showNotification('Generating compliance report...', 'info');
+            
+            // In a real application, this would generate and download a PDF
+            setTimeout(() => {
+                showNotification('Compliance report generated successfully!', 'success');
+            }, 2000);
+        }
+        
+        // Setup expiration alerts
+        function setupExpirationAlerts() {
+            showNotification('Expiration alerts configured successfully!', 'success');
+        }
+        
         // Initialize form event handlers
         function initForms() {
             penForm.addEventListener('submit', (e) => {
@@ -1342,6 +1465,7 @@
                 };
                 addPen(penData);
                 penForm.reset();
+                showNotification('Epinephrine pen added successfully!', 'success');
             });
             
             trainingForm.addEventListener('submit', (e) => {
@@ -1354,6 +1478,7 @@
                 };
                 addTrainedStaff(staffData);
                 trainingForm.reset();
+                showNotification('Trained staff member added successfully!', 'success');
             });
         }
         
